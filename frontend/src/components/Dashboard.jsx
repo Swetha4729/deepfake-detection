@@ -38,17 +38,17 @@ const statCards = [
 ]
 
 function StatCard({ label, value, suffix = '', icon: Icon, tint }) {
-  const animated = useCountUp(value, { duration: 800 })
+  const animated = useCountUp(value, { duration: 700 })
 
   return (
-    <div className="group bg-muted/50 animate-fade-up hover:border-primary/30 flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <div className="group bg-muted/50 flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
       <div
-        className={`flex size-9 shrink-0 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-110 ${tint}`}
+        className={`flex size-9 shrink-0 items-center justify-center rounded-md transition-transform duration-200 group-hover:scale-105 ${tint}`}
       >
         <Icon className="size-4" />
       </div>
       <div className="min-w-0">
-        <div className="truncate text-2xl leading-tight font-bold tabular-nums">
+        <div className="truncate text-2xl leading-tight font-semibold tabular-nums">
           {animated}
           {suffix}
         </div>
@@ -100,8 +100,8 @@ export function Dashboard({ history }) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Dashboard</CardTitle>
-            <CardDescription>Detection statistics from your analysis session</CardDescription>
+            <CardTitle className="text-lg">Detection Summary</CardTitle>
+            <CardDescription>Statistics from your analysis session</CardDescription>
           </div>
           <div className="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-lg">
             <BarChart2 className="size-4" />
@@ -118,7 +118,7 @@ export function Dashboard({ history }) {
         <Separator className="my-4" />
 
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="animate-fade-up rounded-lg border p-4" style={{ animationDelay: '80ms' }}>
+          <div className="animate-fade-in rounded-lg border p-4">
             <div className="mb-1 text-sm font-medium">Verdict Distribution</div>
             <div className="text-muted-foreground mb-3 text-xs">Genuine vs. synthetic clips detected</div>
             <div className="relative h-52">
@@ -142,7 +142,7 @@ export function Dashboard({ history }) {
               </ResponsiveContainer>
               {hasData ? (
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-2xl font-bold tabular-nums">{stats.total}</div>
+                  <div className="text-2xl font-semibold tabular-nums">{stats.total}</div>
                   <div className="text-muted-foreground text-xs">clips</div>
                 </div>
               ) : (
@@ -163,7 +163,7 @@ export function Dashboard({ history }) {
             </div>
           </div>
 
-          <div className="animate-fade-up rounded-lg border p-4" style={{ animationDelay: '160ms' }}>
+          <div className="animate-fade-in rounded-lg border p-4">
             <div className="mb-1 text-sm font-medium">Recent Confidence</div>
             <div className="text-muted-foreground mb-3 text-xs">Last {Math.min(10, trend.length) || 0} predictions (rolling)</div>
             {hasData ? (

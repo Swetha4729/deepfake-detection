@@ -1,23 +1,41 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { BarChart2, UploadCloud } from 'react-feather'
 
 import { Dashboard } from '@/components/Dashboard'
 import { Header } from '@/components/Header'
 import { HistoryPanel } from '@/components/HistoryPanel'
+import { LoginPage } from '@/components/LoginPage'
 import { ResultZone } from '@/components/ResultZone'
+import { Sidebar } from '@/components/Sidebar'
 import { AnalyzingState, ErrorState } from '@/components/StatusViews'
 import { UploadZone } from '@/components/UploadZone'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
+const USER_STORAGE_KEY = 'voiceguard-user'
 
 const MAX_ATTEMPTS = 4
 const RETRYABLE = ['ECONNABORTED', 'Network Error', 502, 503, 504]
+const MIN_SKELETON_TIME = 1600
+
+const VIEW_META = {
+  dashboard: { title: 'Dashboard', subtitle: 'Detection statistics from your analysis session' },
+  workspace: { title: 'Workspace', subtitle: 'Upload a clip to detect whether the audio is synthetic' },
+}
+
+function readStoredUser() {
+  try {
+    const raw = localStorage.getItem(USER_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
 
 export default function App() {
+  const [user, setUser] = useState(readStoredUser)
   const [tab, setTab] = useState('workspace')
-  const [phase, setPhase] = useState('idle') // idle | analyzing | result | error
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [phase, setPhase] = useState('idle')
   const [result, setResult] = useState(null)
   const [currentFile, setCurrentFile] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
@@ -25,13 +43,11 @@ export default function App() {
   const [history, setHistory] = useState([])
   const [activeHistoryId, setActiveHistoryId] = useState(null)
 
-  // Persist history across sessions so the dashboard accumulates statistics
   useEffect(() => {
     try {
       const raw = localStorage.getItem('voiceguard-history')
       if (raw) setHistory(JSON.parse(raw))
     } catch {
-      /* ignore */
     }
   }, [])
 
@@ -39,9 +55,28 @@ export default function App() {
     try {
       localStorage.setItem('voiceguard-history', JSON.stringify(history))
     } catch {
-      /* ignore */
     }
   }, [history])
+
+  const handleLogin = (nextUser) => {
+    try {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
+    } catch {
+    }
+    setUser(nextUser)
+    setTab('workspace')
+  }
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem(USER_STORAGE_KEY)
+    } catch {
+    }
+    setUser(null)
+    setTab('workspace')
+    setMobileNavOpen(false)
+    reset()
+  }
 
   const handleFile = async (file) => {
     setCurrentFile(file)
@@ -49,6 +84,7 @@ export default function App() {
     setResult(null)
     setErrorMsg('')
     setAttempt(0)
+    const startedAt = Date.now()
 
     const formData = new FormData()
     formData.append('file', file)
@@ -61,6 +97,12 @@ export default function App() {
           timeout: 150000,
         })
         const data = resp.data
+
+        const elapsed = Date.now() - startedAt
+        if (elapsed < MIN_SKELETON_TIME) {
+          await new Promise((r) => setTimeout(r, MIN_SKELETON_TIME - elapsed))
+        }
+
         setResult(data)
         setPhase('result')
 
@@ -84,7 +126,6 @@ export default function App() {
           RETRYABLE.includes(err.response?.status)
 
         if (retriable && i < MAX_ATTEMPTS) {
-          // Backend cold-starting — wait progressively, then retry.
           await new Promise((r) => setTimeout(r, i * 4000))
           continue
         }
@@ -126,30 +167,47 @@ export default function App() {
     setActiveHistoryId(null)
   }
 
+  const navigate = (nextTab) => {
+    setTab(nextTab)
+    setMobileNavOpen(false)
+  }
+
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />
+  }
+
+  const meta = VIEW_META[tab]
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <div className="flex min-h-screen">
+      <Sidebar activeTab={tab} onNavigate={navigate} />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-6">
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList>
-            <TabsTrigger value="dashboard">
-              <BarChart2 className="size-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="workspace">
-              <UploadCloud className="size-4" />
-              Workspace
-            </TabsTrigger>
-          </TabsList>
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="bg-background/60 absolute inset-0" onClick={() => setMobileNavOpen(false)} />
+          <div className="absolute inset-y-0 left-0">
+            <Sidebar activeTab={tab} onNavigate={navigate} onClose={() => setMobileNavOpen(false)} mobile />
+          </div>
+        </div>
+      )}
 
-          <TabsContent value="dashboard">
-            <Dashboard history={history} />
-          </TabsContent>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header
+          title={meta.title}
+          subtitle={meta.subtitle}
+          user={user}
+          onLogout={handleLogout}
+          onMenuClick={() => setMobileNavOpen(true)}
+        />
 
-          <TabsContent value="workspace">
-            <div className="grid items-start gap-5 pt-2 lg:grid-cols-[1fr_320px]">
-              <div>
+        <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6">
+          {tab === 'dashboard' ? (
+            <div className="animate-fade-in">
+              <Dashboard history={history} />
+            </div>
+          ) : (
+            <div className="grid items-start gap-5 lg:grid-cols-[1fr_320px]">
+              <div className="animate-fade-in">
                 {phase === 'idle' && <UploadZone onFile={handleFile} />}
                 {phase === 'analyzing' && <AnalyzingState filename={currentFile?.name ?? ''} attempt={attempt} />}
                 {phase === 'result' && result && <ResultZone key={activeHistoryId} result={result} file={currentFile} onReset={reset} />}
@@ -158,16 +216,9 @@ export default function App() {
 
               <HistoryPanel history={history} activeId={activeHistoryId} onSelect={handleHistorySelect} onClear={clearHistory} />
             </div>
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      {/* <footer className="border-t py-4">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-1 px-4 text-xs sm:flex-row">
-          <span className="text-muted-foreground">VoiceGuard · ASVspoof 2019 LA · 2D-CNN</span>
-          <span className="text-muted-foreground">Web demo — not for production use</span>
-        </div>
-      </footer> */}
+          )}
+        </main>
+      </div>
     </div>
   )
 }

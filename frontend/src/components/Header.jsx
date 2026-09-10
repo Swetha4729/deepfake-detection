@@ -1,21 +1,32 @@
-import { Shield } from 'react-feather'
+import { Menu } from 'react-feather'
 
+import { ProfileMenu } from '@/components/ProfileMenu'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { Button } from '@/components/ui/button'
 
-export function Header() {
+export function Header({ title, subtitle, user, onLogout, onMenuClick }) {
   return (
-    <header className="bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-lg shadow-sm">
-            <Shield className="size-5" />
-          </div>
-          <div>
-            <h1 className="text-base leading-tight font-bold tracking-tight">VoiceGuard</h1>
-            <p className="text-muted-foreground hidden text-xs sm:block">Deepfake Audio Detector</p>
+    <header className="bg-background/80 sticky top-0 z-30 border-b backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            aria-label="Open navigation"
+            onClick={onMenuClick}
+          >
+            <Menu className="size-5" />
+          </Button>
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-semibold tracking-tight">{title}</h1>
+            <p className="text-muted-foreground hidden truncate text-xs sm:block">{subtitle}</p>
           </div>
         </div>
-        <ThemeToggle />
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle />
+          <ProfileMenu user={user} onLogout={onLogout} />
+        </div>
       </div>
     </header>
   )

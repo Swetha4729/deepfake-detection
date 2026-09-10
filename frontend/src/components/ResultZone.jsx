@@ -10,8 +10,8 @@ import { useCountUp } from '@/lib/useCountUp'
 
 function StatChip({ label, value, cls = '' }) {
   return (
-    <div className="bg-muted/50 animate-fade-up rounded-lg border p-3 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
-      <div className={`text-lg font-bold tabular-nums ${cls}`}>{value}</div>
+    <div className="bg-muted/50 rounded-lg border p-3 text-center">
+      <div className={`text-lg font-semibold tabular-nums ${cls}`}>{value}</div>
       <div className="text-muted-foreground mt-1 text-[11px]">{label}</div>
     </div>
   )
@@ -20,7 +20,7 @@ function StatChip({ label, value, cls = '' }) {
 export function ResultZone({ result, file, onReset }) {
   const isSpoof = result.verdict === 'spoof'
   const flagged = result.segment_probabilities.filter((p) => p >= 0.7).length
-  const confidence = useCountUp(result.confidence, { duration: 1000 })
+  const confidence = useCountUp(result.confidence, { duration: 700 })
 
   const stats = [
     {
@@ -29,7 +29,7 @@ export function ResultZone({ result, file, onReset }) {
       cls: isSpoof ? 'text-spoof' : 'text-genuine',
     },
     { label: 'Segments', value: result.segment_count, cls: '' },
-    { label: 'Flagged Segments', value: flagged, cls: '' },
+    { label: 'Flagged Segments', value: flagged, cls: flagged > 0 ? 'text-spoof' : '' },
   ]
 
   return (
@@ -39,33 +39,31 @@ export function ResultZone({ result, file, onReset }) {
       </CardHeader>
       <CardContent>
         <div
-          className={`animate-pop-in rounded-lg border p-4 ${
-            isSpoof ? 'border-spoof/30 bg-spoof/5' : 'border-genuine/30 bg-genuine/5'
+          className={`animate-fade-in flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between ${
+            isSpoof ? 'border-spoof/25 bg-spoof/5' : 'border-genuine/25 bg-genuine/5'
           }`}
         >
-          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <div className="flex min-w-0 items-center gap-3">
-              <div
-                className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
-                  isSpoof ? 'bg-spoof/15 text-spoof' : 'bg-genuine/15 text-genuine'
-                }`}
-              >
-                {isSpoof ? <AlertTriangle className="size-5" /> : <CheckCircle className="size-5" />}
-              </div>
-              <div className="min-w-0">
-                <div className="text-lg leading-tight font-bold">{isSpoof ? 'Likely Synthetic' : 'Likely Genuine'}</div>
-                <div className="text-muted-foreground truncate text-xs">{result.filename}</div>
-              </div>
+          <div className="flex min-w-0 items-center gap-3">
+            <div
+              className={`flex size-10 shrink-0 items-center justify-center rounded-full ${
+                isSpoof ? 'bg-spoof/15 text-spoof' : 'bg-genuine/15 text-genuine'
+              }`}
+            >
+              {isSpoof ? <AlertTriangle className="size-5" /> : <CheckCircle className="size-5" />}
             </div>
-            <div className="shrink-0 text-left sm:text-right">
-              <div className="text-2xl leading-tight font-extrabold tabular-nums">{confidence}%</div>
-              <div className="text-muted-foreground text-xs">Confidence</div>
+            <div className="min-w-0">
+              <div className="text-base leading-tight font-semibold">{isSpoof ? 'Likely Synthetic' : 'Likely Genuine'}</div>
+              <div className="text-muted-foreground truncate text-xs">{result.filename}</div>
             </div>
+          </div>
+          <div className="shrink-0 text-left sm:text-right">
+            <div className="text-xl leading-tight font-semibold tabular-nums">{confidence}%</div>
+            <div className="text-muted-foreground text-xs">Confidence</div>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-3">
-          {stats.map((s, i) => (
+          {stats.map((s) => (
             <StatChip key={s.label} label={s.label} value={s.value} cls={s.cls} />
           ))}
         </div>
@@ -73,34 +71,24 @@ export function ResultZone({ result, file, onReset }) {
         {file && (
           <>
             <Separator className="my-5" />
-            <p className="animate-fade-up mb-3 text-sm font-medium">Waveform</p>
-            <div className="animate-fade-up" style={{ animationDelay: '60ms' }}>
-              <WaveformPlayer file={file} />
-            </div>
+            <p className="mb-3 text-sm font-medium">Waveform</p>
+            <WaveformPlayer file={file} />
           </>
         )}
 
         {result.segment_probabilities.length > 0 && (
           <>
             <Separator className="my-5" />
-            <p className="animate-fade-up mb-3 text-sm font-medium" style={{ animationDelay: '120ms' }}>
-              Per-Segment Spoof Probability
-            </p>
-            <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
-              <SegmentChart probabilities={result.segment_probabilities} />
-            </div>
+            <p className="mb-3 text-sm font-medium">Per-Segment Spoof Probability</p>
+            <SegmentChart probabilities={result.segment_probabilities} />
           </>
         )}
 
         {result.mfcc?.length > 0 && (
           <>
             <Separator className="my-5" />
-            <p className="animate-fade-up mb-3 text-sm font-medium" style={{ animationDelay: '200ms' }}>
-              MFCC Heatmap
-            </p>
-            <div className="animate-fade-up" style={{ animationDelay: '260ms' }}>
-              <MfccHeatmap mfcc={result.mfcc} />
-            </div>
+            <p className="mb-3 text-sm font-medium">MFCC Heatmap</p>
+            <MfccHeatmap mfcc={result.mfcc} />
           </>
         )}
 

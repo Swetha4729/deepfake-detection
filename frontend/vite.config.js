@@ -10,6 +10,18 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'charts': ['recharts'],
+          'waveform': ['wavesurfer.js'],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

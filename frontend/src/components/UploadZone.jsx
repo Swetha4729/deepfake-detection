@@ -27,25 +27,28 @@ export function UploadZone({ onFile }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Audio Input</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg">Upload Audio</CardTitle>
+        <span className="text-muted-foreground text-xs">First second of audio is analyzed</span>
       </CardHeader>
       <CardContent>
         <div
           {...getRootProps()}
-          className={`animate-fade-up dropzone-dashed group cursor-pointer rounded-xl border-2 border-dashed p-10 text-center transition-all duration-200 ${
-            isDragActive ? 'border-primary bg-primary/5 scale-[1.01]' : 'hover:border-primary/60 hover:bg-primary/[0.02]'
+          className={`dropzone-dashed group cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-colors duration-200 ${
+            isDragActive ? 'border-primary bg-primary/5' : 'hover:border-primary/60 hover:bg-secondary/40'
           }`}
         >
           <input {...getInputProps()} id="audio-file-input" />
-          <div className={`bg-primary/10 text-primary animate-float mx-auto mb-4 flex size-14 items-center justify-center rounded-full transition-transform duration-200 ${isDragActive ? 'scale-110' : 'group-hover:scale-105'}`}>
-            <UploadCloud className="size-7" />
+          <div
+            className={`text-primary bg-primary/10 mx-auto mb-4 flex size-12 items-center justify-center rounded-full transition-transform duration-200 group-hover:scale-105 ${
+              isDragActive ? 'scale-105' : ''
+            }`}
+          >
+            <UploadCloud className="size-6" />
           </div>
-          <h3 className="text-base font-semibold">
-            {isDragActive ? 'Drop the file now…' : 'Drop an audio file here'}
-          </h3>
+          <h3 className="text-base font-medium">{isDragActive ? 'Release to upload' : 'Drop an audio file here'}</h3>
           <p className="text-muted-foreground mt-1 text-sm">…or click to browse your device</p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             {FORMATS.map((f) => (
               <Badge key={f} variant="secondary">
                 {f}
@@ -54,13 +57,13 @@ export function UploadZone({ onFile }) {
           </div>
           <Button
             type="button"
-            className="group/btn mt-6"
+            className="mt-6"
             onClick={(e) => {
               e.stopPropagation()
               open()
             }}
           >
-            <Headphones className="size-4 transition-transform duration-200 group-hover/btn:-translate-y-0.5" />
+            <Headphones className="size-4" />
             Browse Files
           </Button>
         </div>

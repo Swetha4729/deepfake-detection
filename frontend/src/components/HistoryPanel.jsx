@@ -21,22 +21,21 @@ export function HistoryPanel({ history, activeId, onSelect, onClear }) {
         <div className="max-h-[430px] overflow-y-auto px-3">
           {history.length === 0 ? (
             <div className="py-14 text-center">
-              <div className="bg-muted text-muted-foreground animate-float mx-auto flex size-12 items-center justify-center rounded-full">
+              <div className="bg-muted text-muted-foreground mx-auto flex size-12 items-center justify-center rounded-full">
                 <List className="size-5" />
               </div>
               <p className="text-muted-foreground mt-3 text-sm">Files analyzed this session will appear here</p>
             </div>
           ) : (
             <div className="space-y-1.5">
-              {history.map((item, i) => {
+              {history.map((item) => {
                 const isSpoof = item.verdict === 'spoof'
                 return (
                   <button
                     key={item.id}
-                    className={`animate-fade-up w-full cursor-pointer rounded-lg border px-3 py-2.5 text-left transition-all duration-200 hover:bg-accent ${
+                    className={`w-full cursor-pointer rounded-lg border px-3 py-2.5 text-left transition-colors duration-200 hover:bg-accent ${
                       activeId === item.id ? 'border-primary/60 bg-accent' : 'border-transparent hover:border-border'
                     }`}
-                    style={{ animationDelay: `${Math.min(i, 10) * 45}ms` }}
                     onClick={() => onSelect(item.id)}
                   >
                     <div className="flex items-center justify-between gap-2">
