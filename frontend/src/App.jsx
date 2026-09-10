@@ -12,12 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
 
+const MAX_ATTEMPTS = 4
+const RETRYABLE = ['ECONNABORTED', 'Network Error', 502, 503, 504]
+
 export default function App() {
   const [tab, setTab] = useState('workspace')
   const [phase, setPhase] = useState('idle') // idle | analyzing | result | error
   const [result, setResult] = useState(null)
   const [currentFile, setCurrentFile] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [attempt, setAttempt] = useState(0)
   const [history, setHistory] = useState([])
   const [activeHistoryId, setActiveHistoryId] = useState(null)
 
@@ -44,41 +48,58 @@ export default function App() {
     setPhase('analyzing')
     setResult(null)
     setErrorMsg('')
+    setAttempt(0)
 
     const formData = new FormData()
     formData.append('file', file)
 
-    try {
-      const resp = await axios.post(`${API_BASE}/predict`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 120000,
-      })
-      const data = resp.data
-      setResult(data)
-      setPhase('result')
+    for (let i = 1; i <= MAX_ATTEMPTS; i++) {
+      setAttempt(i)
+      try {
+        const resp = await axios.post(`${API_BASE}/predict`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 150000,
+        })
+        const data = resp.data
+        setResult(data)
+        setPhase('result')
 
-      const id = crypto.randomUUID()
-      const entry = {
-        id,
-        filename: data.filename,
-        verdict: data.verdict,
-        confidence: data.confidence,
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        result: data,
-        file,
+        const id = crypto.randomUUID()
+        const entry = {
+          id,
+          filename: data.filename,
+          verdict: data.verdict,
+          confidence: data.confidence,
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          result: data,
+          file,
+        }
+        setHistory((prev) => [entry, ...prev])
+        setActiveHistoryId(id)
+        return
+      } catch (err) {
+        const retriable =
+          RETRYABLE.includes(err.code) ||
+          RETRYABLE.includes(err.message) ||
+          RETRYABLE.includes(err.response?.status)
+
+        if (retriable && i < MAX_ATTEMPTS) {
+          // Backend cold-starting — wait progressively, then retry.
+          await new Promise((r) => setTimeout(r, i * 4000))
+          continue
+        }
+
+        const msg =
+          err.response?.data?.detail ??
+          (err.code === 'ECONNABORTED'
+            ? 'Request timed out. The backend may be cold-starting — try again in a moment.'
+            : err.message === 'Network Error'
+              ? 'Cannot reach the backend. Make sure it is running on port 8000.'
+              : `Unexpected error: ${err.message}`)
+        setErrorMsg(msg)
+        setPhase('error')
+        return
       }
-      setHistory((prev) => [entry, ...prev])
-      setActiveHistoryId(id)
-    } catch (err) {
-      const msg =
-        err.response?.data?.detail ??
-        (err.code === 'ECONNABORTED'
-          ? 'Request timed out. The backend may be cold-starting — try again in a moment.'
-          : err.message === 'Network Error'
-            ? 'Cannot reach the backend. Make sure it is running on port 8000.'
-            : `Unexpected error: ${err.message}`)
-      setErrorMsg(msg)
-      setPhase('error')
     }
   }
 
@@ -96,6 +117,7 @@ export default function App() {
     setResult(null)
     setCurrentFile(null)
     setErrorMsg('')
+    setAttempt(0)
     setActiveHistoryId(null)
   }
 
@@ -129,7 +151,7 @@ export default function App() {
             <div className="grid items-start gap-5 pt-2 lg:grid-cols-[1fr_320px]">
               <div>
                 {phase === 'idle' && <UploadZone onFile={handleFile} />}
-                {phase === 'analyzing' && <AnalyzingState filename={currentFile?.name ?? ''} />}
+                {phase === 'analyzing' && <AnalyzingState filename={currentFile?.name ?? ''} attempt={attempt} />}
                 {phase === 'result' && result && <ResultZone key={activeHistoryId} result={result} file={currentFile} onReset={reset} />}
                 {phase === 'error' && <ErrorState message={errorMsg} onReset={reset} />}
               </div>

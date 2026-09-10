@@ -1,0 +1,19 @@
+# Keeps the free Render backend awake (free tier sleeps after ~15 min idle).
+# Update the URL below if your Render service URL changes.
+name: keepalive
+
+on:
+  schedule:
+    - cron: '*/9 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: |
+          curl -fsS -o /dev/null -m 60 \
+            -H "Accept: application/json" \
+            https://voiceguard-backend-wsn6.onrender.com/health \
+            || echo "Backend not ready (expected on cold start)"

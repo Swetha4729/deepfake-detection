@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function AnalyzingState({ filename }) {
+export function AnalyzingState({ filename, attempt = 1 }) {
+  const retrying = attempt > 1
   return (
     <Card className="animate-fade-in">
       <CardContent className="space-y-4 px-5 py-6">
@@ -41,7 +42,9 @@ export function AnalyzingState({ filename }) {
           </div>
           <Progress className="max-w-xs" />
           <p className="text-muted-foreground text-xs">
-            The first second of audio is analyzed by the model — this may take a few seconds
+            {retrying
+              ? `Backend is waking up — retrying (attempt ${attempt}/4)…`
+              : 'The first second of audio is analyzed by the model — this may take a few seconds'}
           </p>
         </div>
       </CardContent>
