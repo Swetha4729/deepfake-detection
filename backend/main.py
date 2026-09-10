@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 MODEL_PATH = Path(__file__).parent / "best_model.keras"
+TFLITE_PATH = Path(__file__).parent / "best_model.tflite"
 
 SAMPLE_RATE = 16000
 DURATION = 1.0          # input window length in seconds
@@ -28,17 +29,42 @@ SPOOF_THRESHOLD = 0.70  # >= threshold → spoof
 ALLOWED_EXTENSIONS = {".wav", ".flac", ".mp3", ".ogg", ".m4a"}
 
 # ─── Global model handle ──────────────────────────────────────────────────────
-model = None
+interpreter = None      # TFLite interpreter (preferred, used in production)
+keras_model = None      # Keras fallback when only the .keras file exists
+
+
+def _get_interpreter_cls():
+    """Prefer the lightweight tflite-runtime package (Render); fall back to
+    full TensorFlow's bundled interpreter for local dev."""
+    try:
+        import tflite_runtime.interpreter as tflite
+        return tflite.Interpreter
+    except ImportError:
+        from tensorflow.lite.python.interpreter import Interpreter
+        return Interpreter
 
 
 def load_model():
-    """Load the Keras model once at startup."""
-    global model
-    if not MODEL_PATH.exists():
-        raise RuntimeError(f"Model file not found: {MODEL_PATH}")
-    import tensorflow as tf
-    model = tf.keras.models.load_model(str(MODEL_PATH))
-    logger.info(f"Model loaded from {MODEL_PATH}")
+    """Load the model once at startup. Uses the TFLite artifact when present,
+    otherwise loads the Keras model (requires tensorflow installed)."""
+    global interpreter, keras_model
+
+    if TFLITE_PATH.exists():
+        InterpreterCls = _get_interpreter_cls()
+        interpreter = InterpreterCls(model_path=str(TFLITE_PATH), num_threads=2)
+        interpreter.allocate_tensors()
+        logger.info(f"TFLite model loaded from {TFLITE_PATH}")
+        return
+
+    if MODEL_PATH.exists():
+        import tensorflow as tf
+        keras_model = tf.keras.models.load_model(str(MODEL_PATH))
+        logger.info(f"Keras model loaded from {MODEL_PATH}")
+        return
+
+    raise RuntimeError(
+        f"No model found. Expected either {TFLITE_PATH.name} or {MODEL_PATH.name}"
+    )
 
 
 @asynccontextmanager
@@ -149,17 +175,26 @@ def extract_mfcc(file_path: str):
 def run_inference(segments: np.ndarray):
     """
     Returns a list of per-segment spoof probabilities (0→bonafide, 1→spoof).
+    Accepts a batch shaped (n, 101, 13, 1).
     """
-    if model is None:
-        raise RuntimeError("Model not loaded")
-
-    preds = model.predict(segments, verbose=0)  # shape: (n, 1) or (n, 2)
-
-    if preds.ndim == 2 and preds.shape[1] == 2:
-        # softmax output: column 1 = spoof probability
-        spoof_probs = preds[:, 1].tolist()
+    if interpreter is not None:
+        in_d = interpreter.get_input_details()[0]
+        out_d = interpreter.get_output_details()[0]
+        preds = np.zeros((len(segments), 1), dtype=np.float32)
+        for i, seg in enumerate(segments):
+            interpreter.set_tensor(in_d["index"], seg[np.newaxis].astype(np.float32))
+            interpreter.invoke()
+            preds[i, 0] = interpreter.get_tensor(out_d["index"])[0, 0]
+        spoof_probs = preds[:, 0].tolist()
+    elif keras_model is not None:
+        preds = keras_model.predict(segments, verbose=0)  # shape: (n, 1) or (n, 2)
+        if preds.ndim == 2 and preds.shape[1] == 2:
+            # softmax output: column 1 = spoof probability
+            spoof_probs = preds[:, 1].tolist()
+        else:
+            spoof_probs = preds.flatten().tolist()
     else:
-        spoof_probs = preds.flatten().tolist()
+        raise RuntimeError("Model not loaded")
 
     return spoof_probs
 
@@ -167,10 +202,12 @@ def run_inference(segments: np.ndarray):
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 @app.get("/health")
 def health():
+    engine = "tflite" if interpreter is not None else ("keras" if keras_model is not None else "none")
     return {
         "status": "ok",
-        "model_loaded": model is not None,
-        "model_path": str(MODEL_PATH),
+        "model_loaded": engine != "none",
+        "engine": engine,
+        "model_path": str(TFLITE_PATH if interpreter is not None else MODEL_PATH),
     }
 
 
