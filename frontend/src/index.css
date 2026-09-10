@@ -1,0 +1,251 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(0.985 0.005 270);
+  --foreground: oklch(0.21 0.025 275);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.025 275);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.025 275);
+  --primary: oklch(0.541 0.281 293.009);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.955 0.005 275);
+  --secondary-foreground: oklch(0.32 0.03 275);
+  --muted: oklch(0.955 0.005 275);
+  --muted-foreground: oklch(0.51 0.02 275);
+  --accent: oklch(0.94 0.02 285);
+  --accent-foreground: oklch(0.3 0.05 285);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.008 275);
+  --input: oklch(0.88 0.01 275);
+  --ring: oklch(0.541 0.281 293.009);
+  --radius: 0.625rem;
+  --spoof: oklch(0.577 0.245 27.325);
+  --genuine: oklch(0.607 0.19 149.579);
+  --chart-1: oklch(0.541 0.281 293.009);
+  --chart-2: oklch(0.607 0.19 149.579);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+}
+
+.dark {
+  --background: oklch(0.18 0.01 278 / 0.6);
+  --foreground: oklch(0.97 0.005 275);
+  --card: oklch(0.23 0.012 278);
+  --card-foreground: oklch(0.97 0.005 275);
+  --popover: oklch(0.23 0.012 278);
+  --popover-foreground: oklch(0.97 0.005 275);
+  --primary: oklch(0.68 0.19 292);
+  --primary-foreground: oklch(0.16 0.02 290);
+  --secondary: oklch(0.29 0.012 278);
+  --secondary-foreground: oklch(0.97 0.005 275);
+  --muted: oklch(0.29 0.012 278);
+  --muted-foreground: oklch(0.68 0.015 275);
+  --accent: oklch(0.75 0.12 292 / 0.45);
+  --accent-foreground: oklch(0.97 0.005 275);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(0.35 0.015 278);
+  --input: oklch(0.4 0.015 278);
+  --ring: oklch(0.68 0.19 292);
+  --spoof: oklch(0.704 0.191 22.216);
+  --genuine: oklch(0.715 0.19 162.481);
+  --chart-1: oklch(0.68 0.19 292);
+  --chart-2: oklch(0.715 0.19 162.481);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+}
+
+@theme inline {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-spoof: var(--spoof);
+  --color-genuine: var(--genuine);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    background-image:
+      radial-gradient(900px 320px at 85% -5%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 70%),
+      radial-gradient(700px 260px at -10% 10%, color-mix(in oklch, var(--chart-2) 7%, transparent) 0%, transparent 70%);
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ── Upload dropzone ────────────────────────────────────────────────────── */
+.dropzone-dashed {
+  background-image: linear-gradient(to right, var(--muted-foreground) 45%, transparent 0%),
+    linear-gradient(to right, var(--muted-foreground) 45%, transparent 0%),
+    linear-gradient(to bottom, var(--muted-foreground) 45%, transparent 0%),
+    linear-gradient(to bottom, var(--muted-foreground) 45%, transparent 0%);
+  background-position: left top, left bottom, left top, right top;
+  background-size: 18px 1.5px, 18px 1.5px, 1.5px 18px, 1.5px 18px;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+}
+
+/* ── Waveform ───────────────────────────────────────────────────────────── */
+.waveform-container {
+  width: 100%;
+}
+.waveform-container wave {
+  overflow: hidden;
+}
+
+/* ── MFCC heatmap ───────────────────────────────────────────────────────── */
+.mfcc-axis-text {
+  font-size: 10px;
+  fill: var(--muted-foreground);
+  font-family: var(--font-mono);
+}
+
+/* ── Recharts tweaks ────────────────────────────────────────────────────── */
+.recharts-text {
+  font-family: var(--font-mono);
+}
+.recharts-cartesian-axis-tick-value {
+  fill: var(--muted-foreground);
+}
+.recharts-tooltip-wrapper {
+  outline: none;
+}
+
+/* ── Motion design system ───────────────────────────────────────────────── */
+@theme {
+  --animate-fade-up: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.4s ease-out both;
+  --animate-pop-in: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-float: float 3.5s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pop-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes shimmer {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+}
+
+/* Indeterminate progress: animated slide across the track */
+.progress-indeterminate {
+  animation: progress-slide 1.3s ease-in-out infinite;
+}
+@keyframes progress-slide {
+  0% {
+    left: -40%;
+    width: 40%;
+  }
+  100% {
+    left: 110%;
+    width: 60%;
+  }
+}
+
+/* ── Accessibility: respect reduced motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
