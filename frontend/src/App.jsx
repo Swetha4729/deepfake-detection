@@ -94,7 +94,7 @@ export default function App() {
           (err.code === 'ECONNABORTED'
             ? 'Request timed out. The backend may be cold-starting — try again in a moment.'
             : err.message === 'Network Error'
-              ? 'Cannot reach the backend. Make sure it is running on port 8000.'
+              ? 'Cannot reach the backend. If you are running locally, start it on port 8000.'
               : `Unexpected error: ${err.message}`)
         setErrorMsg(msg)
         setPhase('error')

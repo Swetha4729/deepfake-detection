@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 
 import numpy as np
 import soundfile as sf
-import librosa
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -27,6 +26,12 @@ HOP_LENGTH = 160
 SPOOF_THRESHOLD = 0.70  # >= threshold → spoof
 
 ALLOWED_EXTENSIONS = {".wav", ".flac", ".mp3", ".ogg", ".m4a"}
+
+# Precomputed MFCC constants (mirror librosa 0.10.2 exactly, no runtime deps):
+# mel filterbank (128, 201), Hann window (400,), orthonormal DCT-II (13, 128)
+MEL_BASIS = np.load(Path(__file__).parent / "mfcc_mel_basis.npy")
+WINDOW = np.load(Path(__file__).parent / "mfcc_window.npy")
+DCT13 = np.load(Path(__file__).parent / "mfcc_dct13.npy")
 
 # ─── Global model handle ──────────────────────────────────────────────────────
 interpreter = None      # TFLite interpreter (preferred, used in production)
@@ -103,13 +108,22 @@ class PredictionResponse(BaseModel):
 
 
 # ─── Audio loading (format-agnostic) ─────────────────────────────────────────
+def _resample(x: np.ndarray, orig_sr: int, target_sr: int) -> np.ndarray:
+    """Lightweight linear resampler (no kaitai/scipy/librosa dependency)."""
+    if orig_sr == target_sr:
+        return x
+    n_out = int(round(len(x) * target_sr / orig_sr))
+    positions = np.arange(n_out) * (orig_sr / target_sr)
+    return np.interp(positions, np.arange(len(x)), x).astype(np.float32)
+
+
 def safe_load_audio(file_path: str) -> np.ndarray:
     """
     Load audio as float32 mono at SAMPLE_RATE.
-    Tries soundfile first (WAV/FLAC/OGG), then pydub (MP3/M4A),
-    then falls back to librosa (requires ffmpeg for compressed formats).
+    soundfile handles WAV/FLAC/OGG natively; pydub handles MP3/M4A.
     """
     suffix = Path(file_path).suffix.lower()
+    array = None
 
     # ── soundfile: handles WAV, FLAC, OGG natively (no ffmpeg needed) ────────
     if suffix in ('.wav', '.flac', '.ogg'):
@@ -117,32 +131,50 @@ def safe_load_audio(file_path: str) -> np.ndarray:
             data, orig_sr = sf.read(file_path, dtype='float32', always_2d=False)
             if data.ndim > 1:
                 data = data.mean(axis=1)   # stereo → mono
-            if orig_sr != SAMPLE_RATE:
-                data = librosa.resample(data, orig_sr=orig_sr, target_sr=SAMPLE_RATE)
-            return data
+            array = _resample(data, orig_sr, SAMPLE_RATE)
         except Exception as e:
             logger.warning(f"soundfile failed ({e}), trying pydub…")
 
     # ── pydub: handles MP3, M4A, and anything soundfile missed ───────────────
-    try:
-        from pydub import AudioSegment
-        audio = AudioSegment.from_file(file_path)
-        audio = audio.set_frame_rate(SAMPLE_RATE).set_channels(1).set_sample_width(2)
-        samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
-        samples /= 32768.0   # int16 → [-1, 1]
-        return samples
-    except Exception as e:
-        logger.warning(f"pydub failed ({e}), trying librosa…")
+    if array is None:
+        try:
+            from pydub import AudioSegment
+            audio = AudioSegment.from_file(file_path)
+            audio = audio.set_frame_rate(SAMPLE_RATE).set_channels(1).set_sample_width(2)
+            samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
+            samples /= 32768.0   # int16 → [-1, 1]  (pydub already resampled)
+            array = samples
+        except Exception as e:
+            logger.warning(f"pydub failed ({e})")
 
-    # ── librosa last resort (needs ffmpeg for mp3/m4a) ────────────────────────
-    y, _ = librosa.load(file_path, sr=SAMPLE_RATE, mono=True)
-    return y
+    if array is None:
+        raise RuntimeError(
+            f"Could not decode '{file_path}'. WAV/FLAC/OGG are supported natively; "
+            "MP3/M4A require ffmpeg on the server."
+        )
+
+    return array.astype(np.float32)
 
 
 # ─── Feature extraction ───────────────────────────────────────────────────────
+def _mel_spectrogram(y: np.ndarray) -> np.ndarray:
+    """
+    Pure-numpy equivalent of:
+      librosa.feature.melspectrogram(y=y, sr=16000, n_fft=400,
+                                     hop_length=160, n_mels=128, power=2.0)
+    Uses precomputed mel filterbank + Hann window (see module constants).
+    """
+    tmp = np.pad(y, N_FFT // 2, mode="constant")
+    n_frames = 1 + (len(tmp) - N_FFT) // HOP_LENGTH
+    frames = np.lib.stride_tricks.sliding_window_view(tmp, N_FFT)[::HOP_LENGTH][:n_frames]
+    spec = np.fft.rfft((frames * WINDOW).T, n=N_FFT, axis=0)
+    power = np.abs(spec) ** 2.0
+    return MEL_BASIS @ power
+
+
 def extract_mfcc(file_path: str):
     """
-    Mirrors the training pipeline exactly:
+    Mirrors the training pipeline exactly (librosa 0.10.2 semantics):
     • Load audio at SAMPLE_RATE
     • Truncate or pad to DURATION (1.0 s) — the model only sees the first second
     • Compute MFCCs (n_mfcc=N_MFCC, n_fft=N_FFT, hop_length=HOP_LENGTH)
@@ -158,16 +190,13 @@ def extract_mfcc(file_path: str):
     else:
         y = y[:target_len]
 
-    mfcc = librosa.feature.mfcc(
-        y=y,
-        sr=SAMPLE_RATE,
-        n_mfcc=N_MFCC,
-        n_fft=N_FFT,
-        hop_length=HOP_LENGTH,
-    )
-    # mfcc shape: (N_MFCC, n_frames)
-    mfcc_2d = mfcc.T                                   # (n_frames, N_MFCC) = (101, 13)
-    features = mfcc_2d[np.newaxis, ..., np.newaxis]    # (1, n_frames, N_MFCC, 1)
+    mel = _mel_spectrogram(y)
+    db = 10.0 * np.log10(np.maximum(mel, 1e-10))
+    db = np.maximum(db, db.max() - 80.0)          # librosa power_to_db top_db=80
+    mfcc = DCT13 @ db                             # (N_MFCC, n_frames)
+
+    mfcc_2d = mfcc.T                              # (n_frames, N_MFCC) = (101, 13)
+    features = mfcc_2d[np.newaxis, ..., np.newaxis]  # (1, n_frames, N_MFCC, 1)
     return features, mfcc_2d
 
 
