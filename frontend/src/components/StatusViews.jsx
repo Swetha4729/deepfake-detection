@@ -35,11 +35,8 @@ export function AnalyzingState({ filename, attempt = 1 }) {
             variant="outline"
             className="text-primary animate-pulse gap-2 border-primary/30 bg-primary/5 px-3 py-1"
           >
-            <Headphones className="size-3.5" />
-            <span className="flex items-center gap-1.5">
-              <Cpu className="size-3.5 text-chart-2" />
-              Model inference in progress
-            </span>
+        
+            
           </Badge>
           <div className="flex items-center gap-2 text-sm">
             <div className="text-primary inline-flex size-5 items-center justify-center">
