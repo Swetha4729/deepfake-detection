@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Headphones, UploadCloud } from 'react-feather'
+import { Headphones, Lock, UploadCloud } from 'react-feather'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -27,21 +27,22 @@ export function UploadZone({ onFile }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle className="text-lg">Upload Audio</CardTitle>
-        <span className="text-muted-foreground text-xs">First second of audio is analyzed</span>
       </CardHeader>
       <CardContent>
         <div
           {...getRootProps()}
-          className={`dropzone-dashed group cursor-pointer rounded-lg border-2 border-dashed p-12 text-center transition-colors duration-200 ${
-            isDragActive ? 'border-primary bg-primary/5' : 'hover:border-primary/60 hover:bg-secondary/40'
+          className={`dropzone-dashed group cursor-pointer rounded-xl border-2 border-dashed p-12 text-center transition-all duration-200 ${
+            isDragActive
+              ? 'border-primary bg-primary/5 shadow-[0_0_0_4px_var(--primary)/10]'
+              : 'hover:border-primary/60 hover:bg-secondary/40'
           }`}
         >
           <input {...getInputProps()} id="audio-file-input" />
           <div
-            className={`text-primary bg-primary/10 mx-auto mb-4 flex size-12 items-center justify-center rounded-full transition-transform duration-200 group-hover:scale-105 ${
-              isDragActive ? 'scale-105' : ''
+            className={`text-primary bg-primary/10 mx-auto mb-4 flex size-14 items-center justify-center rounded-full ring-8 ring-primary/5 transition-transform duration-200 group-hover:scale-105 ${
+              isDragActive ? 'scale-110' : ''
             }`}
           >
             <UploadCloud className="size-6" />
@@ -66,6 +67,17 @@ export function UploadZone({ onFile }) {
             <Headphones className="size-4" />
             Browse Files
           </Button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 text-muted-foreground text-xs">
+          <span className="flex items-center gap-1.5">
+            <UploadCloud className="size-3.5" />
+            Analyzes the first second of audio
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Lock className="size-3.5" />
+            Processed securely, nothing is stored server-side
+          </span>
         </div>
       </CardContent>
     </Card>

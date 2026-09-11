@@ -1,9 +1,10 @@
-import { AlertTriangle, Activity, RotateCcw } from 'react-feather'
+import { AlertTriangle, Activity, Cpu, RotateCcw, Headphones } from 'react-feather'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 
 export function AnalyzingState({ filename, attempt = 1 }) {
   const retrying = attempt > 1
@@ -30,6 +31,16 @@ export function AnalyzingState({ filename, attempt = 1 }) {
         <Skeleton className="h-28 w-full rounded-lg" />
 
         <div className="flex flex-col items-center gap-3 pt-1 text-center">
+          <Badge
+            variant="outline"
+            className="text-primary animate-pulse gap-2 border-primary/30 bg-primary/5 px-3 py-1"
+          >
+            <Headphones className="size-3.5" />
+            <span className="flex items-center gap-1.5">
+              <Cpu className="size-3.5 text-chart-2" />
+              Model inference in progress
+            </span>
+          </Badge>
           <div className="flex items-center gap-2 text-sm">
             <div className="text-primary inline-flex size-5 items-center justify-center">
               <Activity className="size-4 animate-pulse" />
@@ -54,7 +65,7 @@ export function ErrorState({ message, onReset }) {
   return (
     <Card className="animate-fade-up">
       <CardContent className="flex flex-col items-center px-5 py-14 text-center">
-        <div className="bg-destructive/10 text-destructive mb-5 flex size-12 items-center justify-center rounded-full">
+        <div className="bg-destructive/10 text-destructive mb-5 flex size-12 items-center justify-center rounded-full ring-8 ring-destructive/5">
           <AlertTriangle className="size-6" />
         </div>
         <h2 className="text-lg font-semibold">Analysis Failed</h2>

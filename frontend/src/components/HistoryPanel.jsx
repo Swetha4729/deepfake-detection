@@ -3,6 +3,7 @@ import { Clock, List, Trash2 } from 'react-feather'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export function HistoryPanel({ history, activeId, onSelect, onClear }) {
   return (
@@ -11,9 +12,14 @@ export function HistoryPanel({ history, activeId, onSelect, onClear }) {
         <CardTitle>Session History</CardTitle>
         <CardAction>
           {history.length > 0 && (
-            <Button variant="ghost" size="icon" className="size-8" onClick={onClear} aria-label="Clear history">
-              <Trash2 className="size-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8" onClick={onClear} aria-label="Clear history">
+                  <Trash2 className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Clear session history</TooltipContent>
+            </Tooltip>
           )}
         </CardAction>
       </CardHeader>

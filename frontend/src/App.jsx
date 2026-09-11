@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { toast } from 'sonner'
 
 import { Dashboard } from '@/components/Dashboard'
 import { Header } from '@/components/Header'
@@ -9,6 +10,7 @@ import { ResultZone } from '@/components/ResultZone'
 import { Sidebar } from '@/components/Sidebar'
 import { AnalyzingState, ErrorState } from '@/components/StatusViews'
 import { UploadZone } from '@/components/UploadZone'
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
 const USER_STORAGE_KEY = 'voiceguard-user'
@@ -118,6 +120,15 @@ export default function App() {
         }
         setHistory((prev) => [entry, ...prev])
         setActiveHistoryId(id)
+
+        toast.success(
+          data.verdict === 'spoof'
+            ? 'Synthetic audio detected'
+            : 'Audio verified as genuine',
+          {
+            description: `${data.filename} — ${data.confidence}% confidence`,
+          },
+        )
         return
       } catch (err) {
         const retriable =
@@ -139,6 +150,7 @@ export default function App() {
               : `Unexpected error: ${err.message}`)
         setErrorMsg(msg)
         setPhase('error')
+        toast.error('Analysis failed', { description: msg })
         return
       }
     }
@@ -163,8 +175,10 @@ export default function App() {
   }
 
   const clearHistory = () => {
+    const count = history.length
     setHistory([])
     setActiveHistoryId(null)
+    if (count > 0) toast.info(`Cleared ${count} record${count === 1 ? '' : 's'} from history`)
   }
 
   const navigate = (nextTab) => {
@@ -182,14 +196,18 @@ export default function App() {
     <div className="flex min-h-screen">
       <Sidebar activeTab={tab} onNavigate={navigate} />
 
-      {mobileNavOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="bg-background/60 absolute inset-0" onClick={() => setMobileNavOpen(false)} />
-          <div className="absolute inset-y-0 left-0">
-            <Sidebar activeTab={tab} onNavigate={navigate} onClose={() => setMobileNavOpen(false)} mobile />
-          </div>
-        </div>
-      )}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <SheetDescription className="sr-only">Primary navigation for VoiceGuard</SheetDescription>
+          <Sidebar
+            activeTab={tab}
+            onNavigate={navigate}
+            onClose={() => setMobileNavOpen(false)}
+            mobile
+          />
+        </SheetContent>
+      </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header
@@ -203,7 +221,7 @@ export default function App() {
         <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6">
           {tab === 'dashboard' ? (
             <div className="animate-fade-in">
-              <Dashboard history={history} />
+              <Dashboard history={history} onClearHistory={clearHistory} onSelectHistory={handleHistorySelect} />
             </div>
           ) : (
             <div className="grid items-start gap-5 lg:grid-cols-[1fr_320px]">

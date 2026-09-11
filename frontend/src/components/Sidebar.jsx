@@ -12,12 +12,13 @@ export function Sidebar({ activeTab, onNavigate, onClose = null, mobile = false 
     <aside
       className={cn(
         'bg-card flex w-60 shrink-0 flex-col border-r',
-        mobile ? 'animate-fade-in h-full' : 'sticky top-0 hidden h-screen lg:flex',
+        mobile ? 'h-full' : 'sticky top-0 hidden h-screen lg:flex',
       )}
     >
+      {/* Brand */}
       <div className="flex h-16 items-center justify-between gap-3 border-b px-4">
         <div className="flex items-center gap-2.5">
-          <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg">
+          <div className="bg-primary/10 text-primary relative flex size-8 items-center justify-center rounded-lg ring-1 ring-primary/20">
             <Shield className="size-4" />
           </div>
           <div>
@@ -28,7 +29,7 @@ export function Sidebar({ activeTab, onNavigate, onClose = null, mobile = false 
         {mobile && onClose && (
           <button
             type="button"
-            className="text-muted-foreground hover:text-foreground cursor-pointer rounded-md p-1"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer rounded-md p-1.5 transition-colors"
             aria-label="Close sidebar"
             onClick={onClose}
           >
@@ -37,8 +38,11 @@ export function Sidebar({ activeTab, onNavigate, onClose = null, mobile = false 
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        <div className="text-muted-foreground px-2 pb-2 text-[11px] font-medium tracking-wider uppercase">Navigation</div>
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <div className="text-muted-foreground px-2 pb-2 text-[11px] font-semibold tracking-wider uppercase">
+          Navigation
+        </div>
         {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id
           return (
@@ -46,11 +50,20 @@ export function Sidebar({ activeTab, onNavigate, onClose = null, mobile = false 
               key={id}
               type="button"
               onClick={() => onNavigate(id)}
+              aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex w-full cursor-pointer items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium transition-colors duration-200',
-                active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                'group relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-all duration-200',
+                active
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
               )}
             >
+              <span
+                className={cn(
+                  'bg-primary absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-full transition-all duration-200',
+                  active ? 'opacity-100' : 'opacity-0',
+                )}
+              />
               <Icon className="size-4" />
               {label}
             </button>
@@ -58,10 +71,11 @@ export function Sidebar({ activeTab, onNavigate, onClose = null, mobile = false 
         })}
       </nav>
 
+      {/* Status footer */}
       <div className="border-t px-4 py-3">
-        <div className="text-muted-foreground space-y-0.5 text-[11px]">
-          <div className="font-medium">VoiceGuard</div>
-        </div>
+        <p className="text-muted-foreground text-[10px]">
+          VoiceGuard 
+        </p>
       </div>
     </aside>
   )
